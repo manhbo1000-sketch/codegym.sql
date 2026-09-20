@@ -1,0 +1,91 @@
+HelloServlet.java
+package com.codegym;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+/**
+ * Servlet đầu tiên — hiển thị thời gian hiện tại của máy chủ.
+ *
+ * Truy cập: http://localhost:8080/jsp-servlet-demo/hello
+ */
+@WebServlet(name = "HelloServlet", urlPatterns = {"/hello"})
+public class HelloServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest request,
+                         HttpServletResponse response)
+            throws ServletException, IOException {
+
+        // Cấu hình phản hồi HTML + hỗ trợ tiếng Việt có dấu
+        response.setContentType("text/html;charset=UTF-8");
+
+        // Lấy thời gian hiện tại của server
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        String formattedTime = now.format(formatter);
+
+        try (PrintWriter out = response.getWriter()) {
+            out.println("<!DOCTYPE html>");
+            out.println("<html lang='vi'>");
+            out.println("<head>");
+            out.println("  <meta charset='UTF-8'>");
+            out.println("  <title>Hello Servlet</title>");
+            out.println("  <style>");
+            out.println("    body {");
+            out.println("      font-family: 'Segoe UI', Arial, sans-serif;");
+            out.println("      text-align: center;");
+            out.println("      margin-top: 100px;");
+            out.println("      background: linear-gradient(135deg, #f0f4ff, #ffffff);");
+            out.println("    }");
+            out.println("    h1 { color: #1b2a7a; }");
+            out.println("    .time-box {");
+            out.println("      display: inline-block;");
+            out.println("      background: #fff;");
+            out.println("      border: 2px solid #1b2a7a;");
+            out.println("      border-radius: 12px;");
+            out.println("      padding: 20px 40px;");
+            out.println("      margin: 20px 0;");
+            out.println("      box-shadow: 0 4px 12px rgba(27,42,122,0.15);");
+            out.println("    }");
+            out.println("    .time-value {");
+            out.println("      color: #f15a24;");
+            out.println("      font-size: 28px;");
+            out.println("      font-weight: bold;");
+            out.println("      margin: 8px 0 0 0;");
+            out.println("    }");
+            out.println("    a.btn {");
+            out.println("      display: inline-block;");
+            out.println("      margin-top: 20px;");
+            out.println("      background-color: #1b2a7a;");
+            out.println("      color: #fff;");
+            out.println("      padding: 10px 24px;");
+            out.println("      text-decoration: none;");
+            out.println("      border-radius: 6px;");
+            out.println("    }");
+            out.println("    a.btn:hover { background-color: #f15a24; }");
+            out.println("  </style>");
+            out.println("</head>");
+            out.println("<body>");
+            out.println("  <h1>👋 Chào mừng đến với Servlet đầu tiên!</h1>");
+            out.println("  <p>Servlet đang chạy mượt mà trên Jakarta EE (Tomcat 10.1+)</p>");
+            out.println("  <div class='time-box'>");
+            out.println("    <p>⏰ Thời gian hiện tại của máy chủ:</p>");
+            out.println("    <p class='time-value'>" + formattedTime + "</p>");
+            out.println("  </div>");
+            out.println("  <br>");
+            out.println("  <a class='btn' href='index.jsp'>← Quay lại trang chủ JSP</a>");
+            out.println("</body>");
+            out.println("</html>");
+        }
+    }
+}

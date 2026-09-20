@@ -1,0 +1,89 @@
+index.jsp
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="java.time.LocalDateTime" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeGym JSP Demo</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding-top: 80px;
+            background: linear-gradient(135deg, #f8fafc, #ffffff);
+            min-height: 100vh;
+        }
+        h2 {
+            color: #1b2a7a;
+            font-size: 36px;
+            margin-bottom: 12px;
+        }
+        .subtitle {
+            font-size: 18px;
+            color: #64748b;
+            margin-bottom: 32px;
+        }
+        .time-box {
+            display: inline-block;
+            background: #fff;
+            border: 2px solid #1b2a7a;
+            border-radius: 12px;
+            padding: 24px 48px;
+            margin: 20px 0 32px;
+            box-shadow: 0 4px 12px rgba(27,42,122,0.15);
+        }
+        .time-box p {
+            color: #64748b;
+            margin: 0 0 8px 0;
+        }
+        .time-value {
+            color: #f15a24;
+            font-size: 26px;
+            font-weight: bold;
+            margin: 0;
+        }
+        a.btn {
+            display: inline-block;
+            background-color: #1b2a7a;
+            color: #fff;
+            padding: 12px 28px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        a.btn:hover {
+            background-color: #f15a24;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Chào mừng tới lớp học Java Web!</h2>
+    <p class="subtitle">
+        Đây là trang JSP động được biên dịch trực tiếp từ Tomcat Server.
+    </p>
+
+    <%-- Nhúng mã Java động xử lý thời gian qua JSP Scriptlet --%>
+    <%
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        String formattedTime = now.format(formatter);
+    %>
+
+    <div class="time-box">
+        <p>⏰ Thời gian hệ thống hiện tại:</p>
+        <p class="time-value"><%= formattedTime %></p>
+    </div>
+
+    <br>
+    <a class="btn" href="hello">Đi tới HelloServlet →</a>
+
+</body>
+</html>
