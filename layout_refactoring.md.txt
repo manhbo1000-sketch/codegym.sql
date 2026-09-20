@@ -1,0 +1,30 @@
+layout_refactoring.md
+# Báo cáo Refactoring Layout – CreativeChronicle
+
+## Tác hại của `position: absolute` với Responsive Design
+
+Trong Legacy Code, khu vực **Mosaic Gallery** dùng `position: absolute`
+kết hợp `height: 400px` cứng. Cách này có 3 tác hại nghiêm trọng:
+
+1. **Phá vỡ luồng tài liệu (Normal Flow):** Phần tử `absolute` bị **tách
+   khỏi luồng bình thường**, không chiếm chỗ trong layout. Kết quả: phần tử
+   cha `.mosaic-gallery` **không tự co giãn theo con**, phải fix cứng
+   `height: 400px`.
+
+2. **Không responsive:** Khi màn hình nhỏ lại, `width: 65%` và `width: 33%`
+   vẫn giữ nguyên tỷ lệ nhưng `height: 400px` cứng → ảnh bị **bóp méo**,
+   **chồng chéo**, che lấn text bên dưới.
+
+3. **Khó bảo trì:** Muốn thêm ảnh thứ 4, phải tính `top/right/bottom/left`
+   thủ công — cực kỳ dễ sai.
+
+## CSS Grid là giải pháp cứu cánh
+
+```css
+.mosaic-gallery {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 15px;
+}
+.photo-main { grid-row: span 2; }
