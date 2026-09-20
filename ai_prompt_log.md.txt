@@ -1,0 +1,40 @@
+ai_prompt_log.md
+# AI Prompt Log – MetricsHub Layout Refactor
+
+> Nhật ký câu hỏi kỹ thuật đã trao đổi với AI (vai trò Trợ lý UI/UX & CSS Tuning).
+
+---
+
+## 1. Flexbox (1D) vs Grid (2D)
+
+**Hỏi AI:**
+> "Khi cần một phần tử con chiếm chính xác 2 hàng và 2 cột đan xen với các
+> phần tử nhỏ khác, nên dùng Grid hay Flexbox? Tại sao Flexbox chật vật?"
+
+**AI trả lời (tóm tắt):**
+- Flexbox chỉ kiểm soát **1 trục** — muốn span 2 hàng phải lồng Flexbox
+  cha-con nhiều tầng → sinh ra **"Div Soup"**.
+- Grid kiểm soát **2 trục** — chỉ cần `grid-row: span 2; grid-column: span 2;`.
+- ⇒ Bento Dashboard bắt buộc dùng **Grid**.
+
+---
+
+## 2. Cú pháp `grid-template-areas` cho Bento Box
+
+**Hỏi AI:**
+> "Cho tôi cú pháp CSS Grid để tạo Bento Box: 1 ô lớn bên trái chiếm 2×2,
+> 2 ô nhỏ bên phải."
+
+**AI trả lời (tóm tắt):**
+```css
+.grid-dashboard {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 200px);
+    grid-template-areas:
+        "chart-a chart-b chart-c"
+        "chart-a chart-d chart-d";
+    gap: 16px;
+}
+.widget-chart-a { grid-area: chart-a; }
+.widget-chart-d { grid-area: chart-d; }

@@ -1,0 +1,31 @@
+layout_strategy.md
+# Chiến lược Dàn trang – MetricsHub
+
+## Nguyên tắc cốt lõi
+
+> **CSS Grid sinh ra để làm Layout tổng thể.**
+> **Flexbox sinh ra để làm Component chi tiết.**
+
+### Vì sao?
+
+- **Grid là hệ thống 2 chiều (2D)** — kiểm soát đồng thời cả hàng lẫn cột.
+  Phù hợp cho **layout tổng thể** hoặc khu vực phức tạp (Bento Dashboard với
+  widget span 2 hàng, 2 cột).
+- **Flexbox là hệ thống 1 chiều (1D)** — chỉ căn chỉnh theo **một trục**
+  (ngang hoặc dọc). Phù hợp cho **component nhỏ**: navbar, căn giữa icon +
+  text, danh sách button.
+
+## Áp dụng vào MetricsHub
+
+| Khu vực | Công cụ | Lý do |
+|---|---|---|
+| **Navbar** | **Flexbox** | 1D — chỉ dàn ngang 3 nhóm (logo / menu / user). Tự động giãn theo nội dung, không sợ tràn khi đổi ngôn ngữ sang tiếng Đức. |
+| **Dashboard** | **CSS Grid** | 2D — widget cần span 2 hàng hoặc 2 cột. Grid giúp DOM phẳng, không cần `.column` lồng nhau. |
+| **Pricing** | **Bootstrap** | Layout 3 cột đối xứng, có sẵn 12-col grid + responsive. Tốc độ triển khai nhanh. |
+
+## Kết hợp Grid + Flexbox
+
+Bên trong mỗi widget (đang nằm trong Grid), mình dùng thêm **Flexbox**
+(`display: flex; flex-direction: column; justify-content: center`) để
+căn giữa icon và text. Đây là minh chứng rõ nhất: **Grid lo layout vĩ mô,
+Flexbox lo chi tiết vi mô.**
