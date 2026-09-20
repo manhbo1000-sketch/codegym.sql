@@ -1,0 +1,196 @@
+gallery.html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Gallery</title>
+
+    <style>
+        /* ============================================
+           RESET CHUNG
+           ============================================ */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+
+        /* ============================================
+           TIÊU ĐỀ
+           ============================================ */
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 24px;
+            font-size: 28px;
+        }
+
+        /* ============================================
+           GALLERY CONTAINER
+           Mặc định: 4 ảnh / dòng (desktop > 700px)
+           ============================================ */
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Mỗi item chiếm 1/4 chiều rộng (trừ gap) */
+        .gallery-item {
+            flex: 0 0 calc(25% - 12px);   /* 4 ảnh / dòng */
+            background-color: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Ảnh */
+        .gallery-item img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Phần caption */
+        .gallery-item .caption {
+            padding: 12px;
+            text-align: center;
+        }
+
+        .gallery-item .caption h3 {
+            font-size: 15px;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .gallery-item .caption p {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+
+        /* ============================================
+           MEDIA QUERIES — RESPONSIVE
+           ============================================ */
+
+        /* Tablet: < 700px → 2 ảnh / dòng */
+        @media (max-width: 700px) {
+            .gallery-item {
+                flex: 0 0 calc(50% - 8px);
+            }
+
+            .gallery-item img {
+                height: 160px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+
+        /* Mobile: < 500px → 1 ảnh / dòng */
+        @media (max-width: 500px) {
+            .gallery-item {
+                flex: 0 0 100%;
+            }
+
+            .gallery-item img {
+                height: 220px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📸 Thư viện ảnh</h1>
+
+    <div class="gallery">
+
+        <div class="gallery-item">
+            <img src="https://picsum.photos/id/1015/400/300" alt="Ảnh 1">
+            <div class="caption">
+                <h3>Núi và sông</h3>
+                <p>Phong cảnh thiên nhiên</p>
+            </div>
+        </div>
+
+        <div class="gallery-item">
+            <img src="https://picsum.photos/id/1016/400/300" alt="Ảnh 2">
+            <div class="caption">
+                <h3>Rừng xanh</h3>
+                <p>Cây cối tươi mát</p>
+            </div>
+        </div>
+
+        <div class="gallery-item">
+            <img src="https://picsum.photos/id/1018/400/300" alt="Ảnh 3">
+            <div class="caption">
+                <h3>Thác nước</h3>
+                <p>Dòng chảy hùng vĩ</p>
+            </div>
+        </div>
+
+        <div class="gallery-item">
+            <img src="https://picsum.photos/id/1019/400/300" alt="Ảnh 4">
+            <div class="caption">
+                <h3>Biển xanh</h3>
+                <p>Bãi biển yên bình</p>
+            </div>
+        </div>
+
+        <div class="gallery-item">
+            <img src="https://picsum.photos/id/1024/400/300" alt="Ảnh 5">
+            <div class="caption">
+                <h3>Đồng cỏ</h3>
+                <p>Cánh đồng bát ngát</p>
+            </div>
+        </div>
+
+        <div class="gallery-item">
+            <img src="https://picsum.photos/id/1025/400/300" alt="Ảnh 6">
+            <div class="caption">
+                <h3>Chú chó</h3>
+                <p>Động vật đáng yêu</p>
+            </div>
+        </div>
+
+        <div class="gallery-item">
+            <img src="https://picsum.photos/id/1035/400/300" alt="Ảnh 7">
+            <div class="caption">
+                <h3>Hoàng hôn</h3>
+                <p>Ánh chiều tà</p>
+            </div>
+        </div>
+
+        <div class="gallery-item">
+            <img src="https://picsum.photos/id/1039/400/300" alt="Ảnh 8">
+            <div class="caption">
+                <h3>Thành phố</h3>
+                <p>Đèn đêm rực rỡ</p>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
