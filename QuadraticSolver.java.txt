@@ -1,0 +1,92 @@
+QuadraticSolver.java
+package com.codegym;
+
+/**
+ * QuadraticSolver — Thư viện tiện ích giải phương trình bậc 2: ax² + bx + c = 0.
+ *
+ * Cung cấp các phương thức static để giải và trả về kết quả.
+ * Không cần khởi tạo đối tượng, gọi trực tiếp qua tên class.
+ */
+public class QuadraticSolver {
+
+    /**
+     * Kết quả giải phương trình.
+     */
+    public static class Result {
+        public final String status;      // "VO_NGHIEM", "NGHIEM_KEP", "HAI_NGHIEM", "VO_SO_NGHIEM", "KHONG_PHAI_BAC_2"
+        public final Double x1;
+        public final Double x2;
+        public final double delta;
+
+        public Result(String status, Double x1, Double x2, double delta) {
+            this.status = status;
+            this.x1 = x1;
+            this.x2 = x2;
+            this.delta = delta;
+        }
+
+        @Override
+        public String toString() {
+            switch (status) {
+                case "VO_NGHIEM":
+                    return "Phương trình vô nghiệm (Δ = " + delta + ")";
+                case "NGHIEM_KEP":
+                    return "Phương trình có nghiệm kép: x1 = x2 = " + x1;
+                case "HAI_NGHIEM":
+                    return "Phương trình có 2 nghiệm phân biệt: x1 = " + x1 + ", x2 = " + x2;
+                case "VO_SO_NGHIEM":
+                    return "Phương trình vô số nghiệm";
+                case "KHONG_PHAI_BAC_2":
+                    return "Không phải phương trình bậc 2 (a = 0)";
+                default:
+                    return "Không xác định";
+            }
+        }
+    }
+
+    /**
+     * Giải phương trình bậc 2: ax² + bx + c = 0.
+     *
+     * @param a hệ số bậc 2
+     * @param b hệ số bậc 1
+     * @param c hệ số tự do
+     * @return Result chứa trạng thái và nghiệm (nếu có)
+     * @throws IllegalArgumentException nếu a, b, c không hợp lệ (NaN/Infinity)
+     */
+    public static Result solve(double a, double b, double c) {
+        if (Double.isNaN(a) || Double.isNaN(b) || Double.isNaN(c)
+                || Double.isInfinite(a) || Double.isInfinite(b) || Double.isInfinite(c)) {
+            throw new IllegalArgumentException("Hệ số không hợp lệ");
+        }
+
+        // Trường hợp a = 0 → không phải bậc 2
+        if (a == 0) {
+            if (b == 0) {
+                return new Result("VO_SO_NGHIEM", null, null, 0);
+            }
+            double x = -c / b;
+            return new Result("NGHIEM_KEP", x, x, 0);
+        }
+
+        double delta = b * b - 4 * a * c;
+
+        if (delta < 0) {
+            return new Result("VO_NGHIEM", null, null, delta);
+        } else if (delta == 0) {
+            double x = -b / (2 * a);
+            return new Result("NGHIEM_KEP", x, x, delta);
+        } else {
+            double sqrtDelta = Math.sqrt(delta);
+            double x1 = (-b + sqrtDelta) / (2 * a);
+            double x2 = (-b - sqrtDelta) / (2 * a);
+            return new Result("HAI_NGHIEM", x1, x2, delta);
+        }
+    }
+
+    /**
+     * Giải phương trình bậc 2 với đối tượng QuadraticEquation.
+     */
+    public static Result solve(QuadraticEquation eq) {
+        return solve(eq.getA(), eq.getB(), eq.getC());
+    }
+}

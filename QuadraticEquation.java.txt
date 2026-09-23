@@ -1,0 +1,50 @@
+QuadraticEquation.java
+package com.codegym;
+
+/**
+ * QuadraticEquation — Model đại diện cho phương trình bậc 2: ax² + bx + c = 0.
+ *
+ * Nhiệm vụ:
+ *  - Lưu trữ 3 hệ số a, b, c.
+ *  - Cung cấp getter/setter cho từng hệ số.
+ *  - Tính delta (Δ = b² - 4ac).
+ *  - Kiểm tra phương trình có phải bậc 2 hay không (a != 0).
+ */
+public class QuadraticEquation {
+
+    private double a;
+    private double b;
+    private double c;
+
+    public QuadraticEquation() {}
+
+    public QuadraticEquation(double a, double b, double c) {
+        this.a = a;
+        this.b = b;
+        this.c = c;
+    }
+
+    public double getA() { return a; }
+    public void setA(double a) { this.a = a; }
+
+    public double getB() { return b; }
+    public void setB(double b) { this.b = b; }
+
+    public double getC() { return c; }
+    public void setC(double c) { this.c = c; }
+
+    /**
+     * Tính delta = b² - 4ac.
+     */
+    public double getDelta() {
+        return b * b - 4 * a * c;
+    }
+
+    /**
+     * Kiểm tra có phải phương trình bậc 2 hay không.
+     * @return true nếu a != 0
+     */
+    public boolean isQuadratic() {
+        return a != 0;
+    }
+}

@@ -1,0 +1,63 @@
+Main.java
+package com.codegym;
+
+import java.util.Scanner;
+
+public class Main {
+
+    public static void main(String[] args) {
+        System.out.println("===========================================");
+        System.out.println("  GIẢI PHƯƠNG TRÌNH BẬC 2: ax² + bx + c = 0");
+        System.out.println("  (Sử dụng thư viện quadratic-lib.jar)");
+        System.out.println("===========================================\n");
+
+        // ===== TEST 1: Phương trình có 2 nghiệm phân biệt =====
+        System.out.println("--- TEST 1: x² - 5x + 6 = 0 ---");
+        QuadraticSolver.Result r1 = QuadraticSolver.solve(1, -5, 6);
+        System.out.println(r1);
+        System.out.println();
+
+        // ===== TEST 2: Phương trình có nghiệm kép =====
+        System.out.println("--- TEST 2: x² - 4x + 4 = 0 ---");
+        QuadraticSolver.Result r2 = QuadraticSolver.solve(1, -4, 4);
+        System.out.println(r2);
+        System.out.println();
+
+        // ===== TEST 3: Phương trình vô nghiệm =====
+        System.out.println("--- TEST 3: x² + x + 1 = 0 ---");
+        QuadraticSolver.Result r3 = QuadraticSolver.solve(1, 1, 1);
+        System.out.println(r3);
+        System.out.println();
+
+        // ===== TEST 4: Dùng đối tượng QuadraticEquation =====
+        System.out.println("--- TEST 4: 2x² - 7x + 3 = 0 (dùng object) ---");
+        QuadraticEquation eq = new QuadraticEquation(2, -7, 3);
+        System.out.println("Delta = " + eq.getDelta());
+        System.out.println(QuadraticSolver.solve(eq));
+        System.out.println();
+
+        // ===== TEST 5: a = 0 (không phải bậc 2) =====
+        System.out.println("--- TEST 5: 0x² + 2x - 4 = 0 ---");
+        QuadraticSolver.Result r5 = QuadraticSolver.solve(0, 2, -4);
+        System.out.println(r5);
+        System.out.println();
+
+        // ===== NHẬP TỪ BÀN PHÍM =====
+        System.out.println("--- NHẬP PHƯƠNG TRÌNH CỦA BẠN ---");
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Nhập a: ");
+        double a = scanner.nextDouble();
+        System.out.print("Nhập b: ");
+        double b = scanner.nextDouble();
+        System.out.print("Nhập c: ");
+        double c = scanner.nextDouble();
+
+        System.out.println("\nKết quả:");
+        QuadraticSolver.Result userResult = QuadraticSolver.solve(a, b, c);
+        System.out.println(userResult);
+
+        scanner.close();
+        System.out.println("\n=== Hoàn tất ===");
+    }
+}
