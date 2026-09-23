@@ -1,0 +1,1027 @@
+ FILE 1 → inotes/iNotes.sql
+text
+iNotes.sql
+CREATE DATABASE IF NOT EXISTS iNotes
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE iNotes;
+
+DROP TABLE IF EXISTS notes;
+DROP TABLE IF EXISTS note_types;
+
+CREATE TABLE note_types (
+    id   INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE notes (
+    id         INT PRIMARY KEY AUTO_INCREMENT,
+    title      VARCHAR(255) NOT NULL,
+    content    TEXT         NOT NULL,
+    type_id    INT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (type_id) REFERENCES note_types(id)
+);
+
+INSERT INTO note_types (name) VALUES
+('Công việc'),
+('Cá nhân'),
+('Học tập'),
+('Ý tưởng');
+📄 FILE 2 → src/main/java/com/codegym/model/Note.java ⭐ STRATEGY
+text
+Note.java
+package com.codegym.model;
+
+/**
+ * Note — Interface (Strategy) định nghĩa cách quản lý ghi chú.
+ *
+ * Có 2 chiến lược (concrete strategies):
+ *  - NoteDB   : lưu vào CSDL MySQL
+ *  - NoteFile : lưu vào file văn bản
+ *
+ * Nhờ Strategy Pattern, NoteManagement có thể đổi chiến lược
+ * lưu trữ mà không cần sửa code nghiệp vụ.
+ */
+public interface Note {
+
+    void setId(int id);
+    int getId();
+
+    void setTitle(String title);
+    void setContent(String content);
+    void setTypeId(int typeId);
+
+    String getTitle();
+    String getContent();
+    String getType();
+
+    /** Lưu ghi chú (INSERT hoặc UPDATE tùy impl). */
+    void save();
+
+    /** Xóa ghi chú theo id. */
+    void delete();
+}
+📄 FILE 3 → src/main/java/com/codegym/model/NoteType.java
+text
+NoteType.java
+package com.codegym.model;
+
+public class NoteType {
+    private int id;
+    private String name;
+
+    public NoteType() {}
+
+    public NoteType(int id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+}
+📄 FILE 4 → src/main/java/com/codegym/dao/DBConnection.java
+text
+DBConnection.java
+package com.codegym.dao;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DBConnection {
+
+    private static final String URL =
+        "jdbc:mysql://localhost:3306/iNotes"
+        + "?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8";
+    private static final String USERNAME = "root";
+    private static final String PASSWORD = "123456";   // ← đổi mật khẩu
+
+    public static Connection getConnection() {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            return DriverManager.getConnection(URL, USERNAME, PASSWORD);
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
+📄 FILE 5 → src/main/java/com/codegym/model/NoteDB.java ⭐ CONCRETE STRATEGY 1
+text
+NoteDB.java
+package com.codegym.model;
+
+import com.codegym.dao.DBConnection;
+
+import java.sql.*;
+
+/**
+ * NoteDB — Chiến lược lưu ghi chú vào CSDL MySQL.
+ */
+public class NoteDB implements Note {
+
+    private int id;
+    private String title;
+    private String content;
+    private int typeId;
+    private String typeName;
+
+    public NoteDB() {}
+
+    public NoteDB(int id, String title, String content,
+                  int typeId, String typeName) {
+        this.id = id;
+        this.title = title;
+        this.content = content;
+        this.typeId = typeId;
+        this.typeName = typeName;
+    }
+
+    public NoteDB(String title, String content, int typeId) {
+        this.title = title;
+        this.content = content;
+        this.typeId = typeId;
+    }
+
+    @Override public void setId(int id) { this.id = id; }
+    @Override public int getId() { return id; }
+
+    @Override public void setTitle(String title) { this.title = title; }
+    @Override public void setContent(String content) { this.content = content; }
+    @Override public void setTypeId(int typeId) { this.typeId = typeId; }
+
+    @Override public String getTitle() { return title; }
+    @Override public String getContent() { return content; }
+    @Override public String getType() { return typeName; }
+
+    public int getTypeId() { return typeId; }
+
+    // ============================================================
+    // SAVE — INSERT hoặc UPDATE tùy có id hay chưa
+    // ============================================================
+    @Override
+    public void save() {
+        if (id > 0) {
+            update();
+        } else {
+            insert();
+        }
+    }
+
+    private void insert() {
+        String sql = "INSERT INTO notes (title, content, type_id) VALUES (?, ?, ?)";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                 sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, title);
+            ps.setString(2, content);
+            ps.setInt(3, typeId);
+            ps.executeUpdate();
+
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) id = rs.getInt(1);
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    private void update() {
+        String sql = "UPDATE notes SET title=?, content=?, type_id=? WHERE id=?";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, title);
+            ps.setString(2, content);
+            ps.setInt(3, typeId);
+            ps.setInt(4, id);
+            ps.executeUpdate();
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    // ============================================================
+    // DELETE
+    // ============================================================
+    @Override
+    public void delete() {
+        String sql = "DELETE FROM notes WHERE id = ?";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+}
+📄 FILE 6 → src/main/java/com/codegym/model/NoteFile.java ⭐ CONCRETE STRATEGY 2
+text
+NoteFile.java
+package com.codegym.model;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * NoteFile — Chiến lược lưu ghi chú vào file văn bản.
+ *
+ * Định dạng file notes.txt (mỗi dòng 1 ghi chú):
+ *   id|title|typeId|content
+ *
+ * Ví dụ:
+ *   1|Họp nhóm|1|Nội dung cuộc họp...
+ *   2|Mua sữa|2|Mua 2 hộp sữa tươi
+ */
+public class NoteFile implements Note {
+
+    private static final String FILE_PATH = "notes.txt";
+    private static final String SEPARATOR = "|";
+
+    private int id;
+    private String title;
+    private String content;
+    private int typeId;
+    private String typeName;
+
+    public NoteFile() {}
+
+    public NoteFile(int id, String title, String content, int typeId) {
+        this.id = id;
+        this.title = title;
+        this.content = content;
+        this.typeId = typeId;
+    }
+
+    @Override public void setId(int id) { this.id = id; }
+    @Override public int getId() { return id; }
+
+    @Override public void setTitle(String title) { this.title = title; }
+    @Override public void setContent(String content) { this.content = content; }
+    @Override public void setTypeId(int typeId) { this.typeId = typeId; }
+
+    @Override public String getTitle() { return title; }
+    @Override public String getContent() { return content; }
+    @Override public String getType() { return typeName; }
+
+    public int getTypeId() { return typeId; }
+    public void setTypeName(String typeName) { this.typeName = typeName; }
+
+    // ============================================================
+    // SAVE — Ghi vào file
+    // ============================================================
+    @Override
+    public void save() {
+        List<String> lines = readAllLines();
+
+        // Tìm id lớn nhất để sinh id mới
+        if (id <= 0) {
+            int maxId = 0;
+            for (String line : lines) {
+                String[] parts = line.split("\\|", 4);
+                if (parts.length >= 1) {
+                    try { maxId = Math.max(maxId, Integer.parseInt(parts[0])); }
+                    catch (NumberFormatException ignored) {}
+                }
+            }
+            id = maxId + 1;
+        }
+
+        String newLine = id + SEPARATOR + title + SEPARATOR + typeId + SEPARATOR + content;
+
+        // Ghi đè dòng có cùng id (nếu update) hoặc thêm mới
+        boolean updated = false;
+        for (int i = 0; i < lines.size(); i++) {
+            String[] parts = lines.get(i).split("\\|", 4);
+            if (parts.length >= 1 && String.valueOf(id).equals(parts[0])) {
+                lines.set(i, newLine);
+                updated = true;
+                break;
+            }
+        }
+        if (!updated) lines.add(newLine);
+
+        writeAllLines(lines);
+    }
+
+    // ============================================================
+    // DELETE — Xóa khỏi file
+    // ============================================================
+    @Override
+    public void delete() {
+        List<String> lines = readAllLines();
+        lines.removeIf(line -> {
+            String[] parts = line.split("\\|", 4);
+            return parts.length >= 1 && String.valueOf(id).equals(parts[0]);
+        });
+        writeAllLines(lines);
+    }
+
+    // ============================================================
+    // ĐỌC / GHI FILE
+    // ============================================================
+    private List<String> readAllLines() {
+        File file = new File(FILE_PATH);
+        if (!file.exists()) return new ArrayList<>();
+
+        try {
+            return Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    private void writeAllLines(List<String> lines) {
+        try {
+            Files.write(Paths.get(FILE_PATH), lines, StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.WRITE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Đọc tất cả ghi chú từ file và trả về List<NoteFile>.
+     */
+    public static List<NoteFile> findAll() {
+        List<NoteFile> result = new ArrayList<>();
+        File file = new File(FILE_PATH);
+        if (!file.exists()) return result;
+
+        try {
+            List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+            for (String line : lines) {
+                String[] parts = line.split("\\|", 4);
+                if (parts.length >= 4) {
+                    NoteFile n = new NoteFile(
+                        Integer.parseInt(parts[0]),
+                        parts[1],
+                        parts[3],
+                        Integer.parseInt(parts[2])
+                    );
+                    result.add(n);
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); }
+        return result;
+    }
+
+    /**
+     * Tìm ghi chú theo id trong file.
+     */
+    public static NoteFile findById(int id) {
+        for (NoteFile n : findAll()) {
+            if (n.getId() == id) return n;
+        }
+        return null;
+    }
+}
+📄 FILE 7 → src/main/java/com/codegym/service/NoteManagement.java ⭐ CONTEXT
+text
+NoteManagement.java
+package com.codegym.service;
+
+import com.codegym.dao.DBConnection;
+import com.codegym.model.Note;
+import com.codegym.model.NoteDB;
+import com.codegym.model.NoteFile;
+import com.codegym.model.NoteType;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * NoteManagement — Lớp quản lý ghi chú sử dụng Strategy Pattern.
+ *
+ * Có thể chuyển đổi giữa 2 chiến lược lưu trữ:
+ *  - "DB"   → NoteDB
+ *  - "FILE" → NoteFile
+ *
+ * Sử dụng: changeNoteStore("FILE") để đổi sang lưu file.
+ */
+public class NoteManagement {
+
+    /** Loại store hiện tại: "DB" hoặc "FILE" */
+    private String storeType = "DB";
+
+    /** Note hiện tại (dùng cho save/delete khi đã setTitle/setContent) */
+    private Note note;
+
+    public NoteManagement() {
+        changeNoteStore("DB");
+    }
+
+    // ============================================================
+    // ⭐ CHIẾN LƯỢC — Đổi store type
+    // ============================================================
+    public void changeNoteStore(String storeType) {
+        this.storeType = storeType;
+        if ("FILE".equalsIgnoreCase(storeType)) {
+            this.note = new NoteFile();
+        } else {
+            this.note = new NoteDB();
+        }
+    }
+
+    public String getStoreType() { return storeType; }
+
+    // ============================================================
+    // SỬ DỤNG NOTE HIỆN TẠI (Strategy được chọn)
+    // ============================================================
+
+    /** Thêm note — sử dụng note strategy hiện tại. */
+    public void addNote(String title, String content, int typeId) {
+        note.setTitle(title);
+        note.setContent(content);
+        note.setTypeId(typeId);
+        note.save();
+    }
+
+    /** Xóa note theo id — sử dụng note strategy hiện tại. */
+    public void addNote(int id) {
+        note.setId(id);
+        note.delete();
+    }
+
+    // ============================================================
+    // TÌM KIẾM — trả về List<Note> tùy theo storeType
+    // ============================================================
+    public List<Note> searchNotes(String keyword) {
+        if ("FILE".equalsIgnoreCase(storeType)) {
+            return searchInFile(keyword);
+        }
+        return searchInDB(keyword);
+    }
+
+    private List<Note> searchInDB(String keyword) {
+        List<Note> result = new ArrayList<>();
+        String sql =
+            "SELECT n.id, n.title, n.content, n.type_id, t.name AS type_name " +
+            "FROM notes n LEFT JOIN note_types t ON n.type_id = t.id " +
+            "WHERE n.title LIKE ? OR n.content LIKE ? " +
+            "ORDER BY n.id DESC";
+
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            String kw = "%" + (keyword == null ? "" : keyword.trim()) + "%";
+            ps.setString(1, kw);
+            ps.setString(2, kw);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                result.add(new NoteDB(
+                    rs.getInt("id"),
+                    rs.getString("title"),
+                    rs.getString("content"),
+                    rs.getInt("type_id"),
+                    rs.getString("type_name")
+                ));
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return result;
+    }
+
+    private List<Note> searchInFile(String keyword) {
+        List<Note> result = new ArrayList<>();
+        String kw = (keyword == null) ? "" : keyword.trim().toLowerCase();
+        for (NoteFile n : NoteFile.findAll()) {
+            if (n.getTitle().toLowerCase().contains(kw)
+                    || n.getContent().toLowerCase().contains(kw)) {
+                result.add(n);
+            }
+        }
+        return result;
+    }
+
+    // ============================================================
+    // LẤY 1 NOTE THEO ID
+    // ============================================================
+    public Note getNoteById(int id) {
+        if ("FILE".equalsIgnoreCase(storeType)) {
+            return NoteFile.findById(id);
+        }
+        String sql =
+            "SELECT n.id, n.title, n.content, n.type_id, t.name AS type_name " +
+            "FROM notes n LEFT JOIN note_types t ON n.type_id = t.id " +
+            "WHERE n.id = ?";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new NoteDB(
+                    rs.getInt("id"),
+                    rs.getString("title"),
+                    rs.getString("content"),
+                    rs.getInt("type_id"),
+                    rs.getString("type_name")
+                );
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return null;
+    }
+
+    // ============================================================
+    // LẤY DANH SÁCH NOTE TYPES
+    // ============================================================
+    public List<NoteType> getAllTypes() {
+        List<NoteType> types = new ArrayList<>();
+        String sql = "SELECT * FROM note_types";
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                types.add(new NoteType(rs.getInt("id"), rs.getString("name")));
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return types;
+    }
+}
+📄 FILE 8 → src/main/java/com/codegym/controller/NoteServlet.java
+text
+NoteServlet.java
+package com.codegym.controller;
+
+import com.codegym.model.Note;
+import com.codegym.service.NoteManagement;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.util.List;
+
+@WebServlet(name = "NoteServlet", urlPatterns = "/notes")
+public class NoteServlet extends HttpServlet {
+
+    private NoteManagement noteManagement = new NoteManagement();
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.setCharacterEncoding("UTF-8");
+        String action = request.getParameter("action");
+        if (action == null) action = "";
+
+        switch (action) {
+            case "add":
+                addNote(request, response);
+                break;
+            case "changeStore":
+                changeStore(request, response);
+                break;
+            default:
+                listNotes(request, response);
+                break;
+        }
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.setCharacterEncoding("UTF-8");
+        String action = request.getParameter("action");
+        if (action == null) action = "";
+
+        switch (action) {
+            case "add":
+                showAddForm(request, response);
+                break;
+            case "detail":
+                showDetail(request, response);
+                break;
+            case "delete":
+                deleteNote(request, response);
+                break;
+            case "search":
+                searchNotes(request, response);
+                break;
+            default:
+                listNotes(request, response);
+                break;
+        }
+    }
+
+    private void listNotes(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        List<Note> notes = noteManagement.searchNotes("");
+        request.setAttribute("notes", notes);
+        request.setAttribute("storeType", noteManagement.getStoreType());
+        request.getRequestDispatcher("note/list.jsp").forward(request, response);
+    }
+
+    private void searchNotes(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String keyword = request.getParameter("keyword");
+        List<Note> notes = noteManagement.searchNotes(keyword);
+        request.setAttribute("notes", notes);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("storeType", noteManagement.getStoreType());
+        request.getRequestDispatcher("note/list.jsp").forward(request, response);
+    }
+
+    private void showAddForm(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setAttribute("types", noteManagement.getAllTypes());
+        request.setAttribute("storeType", noteManagement.getStoreType());
+        request.getRequestDispatcher("note/add.jsp").forward(request, response);
+    }
+
+    private void addNote(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String title   = request.getParameter("title");
+        String content = request.getParameter("content");
+        int typeId     = Integer.parseInt(request.getParameter("typeId"));
+
+        noteManagement.addNote(title, content, typeId);
+
+        request.setAttribute("message", "Đã thêm ghi chú thành công!");
+        request.setAttribute("types", noteManagement.getAllTypes());
+        request.setAttribute("storeType", noteManagement.getStoreType());
+        request.getRequestDispatcher("note/add.jsp").forward(request, response);
+    }
+
+    private void showDetail(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+        Note note = noteManagement.getNoteById(id);
+        request.setAttribute("note", note);
+        request.setAttribute("storeType", noteManagement.getStoreType());
+        request.getRequestDispatcher("note/detail.jsp").forward(request, response);
+    }
+
+    private void deleteNote(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        int id = Integer.parseInt(request.getParameter("id"));
+        noteManagement.addNote(id);   // gọi delete
+        response.sendRedirect("notes");
+    }
+
+    private void changeStore(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String storeType = request.getParameter("storeType");
+        noteManagement.changeNoteStore(storeType);
+        response.sendRedirect("notes");
+    }
+}
+📄 FILE 9 → src/main/webapp/WEB-INF/web.xml
+text
+web.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+                             https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+    <display-name>iNotes - Strategy Pattern</display-name>
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+</web-app>
+📄 FILE 10 → src/main/webapp/index.jsp
+text
+index.jsp
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<% response.sendRedirect("notes"); %>
+📄 FILE 11 → src/main/webapp/note/list.jsp
+text
+list.jsp
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>iNotes - Danh sách ghi chú</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fa;margin:0;padding:30px}
+        .container{max-width:1000px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden}
+        .header{background:linear-gradient(135deg,#1b2a7a,#3b5bdb);color:#fff;padding:24px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+        .header h1{margin:0;font-size:24px}
+        .btn{padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block;border:none;cursor:pointer;transition:.2s}
+        .btn-add{background:#fff;color:#1b2a7a}
+        .btn-add:hover{background:#f15a24;color:#fff}
+        .toolbar{padding:16px 32px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+        .toolbar input{flex:1;max-width:400px;padding:10px 14px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;outline:none}
+        .btn-search{background:#1b2a7a;color:#fff}
+        .btn-search:hover{background:#f15a24}
+        .store-badge{display:inline-block;background:#eef2ff;color:#1b2a7a;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600}
+        table{width:100%;border-collapse:collapse}
+        th{background:#f1f5f9;text-align:left;padding:14px 20px;color:#1b2a7a;font-size:13px;text-transform:uppercase;border-bottom:1px solid #e2e8f0}
+        td{padding:14px 20px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#334155}
+        tr:hover td{background:#f8fafc}
+        .title a{color:#1b2a7a;text-decoration:none;font-weight:600}
+        .title a:hover{text-decoration:underline}
+        .type-badge{display:inline-block;background:#e0e7ff;color:#3730a3;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
+        .btn-sm{padding:6px 12px;font-size:13px;border-radius:4px;text-decoration:none;color:#fff}
+        .btn-view{background:#3b82f6}
+        .btn-del{background:#ef4444;margin-left:6px}
+        .btn-view:hover{background:#2563eb}
+        .btn-del:hover{background:#dc2626}
+        .empty{text-align:center;padding:60px 20px;color:#94a3b8}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 iNotes</h1>
+            <a href="notes?action=add" class="btn btn-add">+ Thêm ghi chú</a>
+        </div>
+
+        <!-- Toolbar: tìm kiếm + đổi store -->
+        <form class="toolbar" action="notes" method="GET">
+            <input type="hidden" name="action" value="search">
+            <input type="text" name="keyword" placeholder="🔍 Tìm theo tiêu đề hoặc nội dung..."
+                   value="<c:out value='${keyword}'/>" />
+            <button type="submit" class="btn btn-search">Tìm kiếm</button>
+            <a href="notes" class="btn" style="background:#e2e8f0;color:#334155">Reset</a>
+
+            <span class="store-badge">💾 Store: ${storeType}</span>
+
+            <!-- ⭐ Đổi Strategy -->
+            <form action="notes" method="POST" style="display:inline">
+                <input type="hidden" name="action" value="changeStore">
+                <select name="storeType" onchange="this.form.submit()"
+                        style="padding:8px 12px;border-radius:6px;border:1px solid #cbd5e1">
+                    <option value="DB"   ${storeType == 'DB'   ? 'selected' : ''}>Lưu vào DB</option>
+                    <option value="FILE" ${storeType == 'FILE' ? 'selected' : ''}>Lưu vào File</option>
+                </select>
+            </form>
+        </form>
+
+        <c:choose>
+            <c:when test="${not empty notes}">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:60px">ID</th>
+                            <th>Tiêu đề</th>
+                            <th style="width:140px">Phân loại</th>
+                            <th style="width:180px">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <c:forEach var="n" items="${notes}">
+                            <tr>
+                                <td>${n.id}</td>
+                                <td class="title">
+                                    <a href="notes?action=detail&id=${n.id}">
+                                        <c:out value="${n.title}" />
+                                    </a>
+                                </td>
+                                <td><span class="type-badge"><c:out value="${n.type}" /></span></td>
+                                <td>
+                                    <a href="notes?action=detail&id=${n.id}" class="btn-sm btn-view">Xem</a>
+                                    <a href="notes?action=delete&id=${n.id}" class="btn-sm btn-del"
+                                       onclick="return confirm('Xóa ghi chú này?')">Xóa</a>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                    </tbody>
+                </table>
+            </c:when>
+            <c:otherwise>
+                <div class="empty">
+                    <h3>📭 Không có ghi chú nào</h3>
+                </div>
+            </c:otherwise>
+        </c:choose>
+    </div>
+</body>
+</html>
+📄 FILE 12 → src/main/webapp/note/add.jsp
+text
+add.jsp
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Thêm ghi chú mới</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px}
+        .box{background:#fff;padding:36px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);width:520px}
+        h2{color:#1b2a7a;margin:0 0 20px;text-align:center}
+        label{display:block;font-weight:600;color:#333;margin-bottom:6px;font-size:14px}
+        input,textarea,select{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:6px;font-size:15px;margin-bottom:16px;outline:none;font-family:inherit}
+        input:focus,textarea:focus,select:focus{border-color:#1b2a7a}
+        textarea{min-height:120px;resize:vertical}
+        .btn{width:100%;padding:12px;border:none;border-radius:6px;font-weight:bold;font-size:16px;cursor:pointer;background:#1b2a7a;color:#fff}
+        .btn:hover{background:#f15a24}
+        .btn-back{background:#e2e8f0;color:#334155;text-decoration:none;display:block;text-align:center;padding:12px;border-radius:6px;margin-top:10px;font-weight:600}
+        .msg{background:#e8f5e9;color:#16a34a;padding:12px;border-radius:6px;text-align:center;margin-bottom:16px;font-weight:600}
+        .badge{display:inline-block;background:#eef2ff;color:#1b2a7a;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;margin-bottom:12px}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>➕ Thêm ghi chú mới</h2>
+        <span class="badge">💾 Lưu vào: ${storeType}</span>
+
+        <c:if test="${not empty message}">
+            <div class="msg"><c:out value="${message}" /></div>
+        </c:if>
+
+        <form action="notes" method="POST">
+            <input type="hidden" name="action" value="add">
+
+            <label>Tiêu đề:</label>
+            <input type="text" name="title" required maxlength="255">
+
+            <label>Phân loại:</label>
+            <select name="typeId" required>
+                <c:forEach var="t" items="${types}">
+                    <option value="${t.id}"><c:out value="${t.name}" /></option>
+                </c:forEach>
+            </select>
+
+            <label>Nội dung:</label>
+            <textarea name="content" required></textarea>
+
+            <button type="submit" class="btn">💾 Lưu ghi chú</button>
+            <a href="notes" class="btn-back">← Quay lại danh sách</a>
+        </form>
+    </div>
+</body>
+</html>
+📄 FILE 13 → src/main/webapp/note/detail.jsp
+text
+detail.jsp
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chi tiết ghi chú</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px}
+        .box{background:#fff;padding:36px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);width:640px}
+        h2{color:#1b2a7a;margin:0 0 20px;padding-bottom:12px;border-bottom:2px solid #e0e7ff}
+        .meta{color:#64748b;font-size:14px;margin-bottom:16px}
+        .meta strong{color:#1b2a7a}
+        .content{background:#f8fafc;padding:20px;border-radius:8px;line-height:1.7;color:#334155;margin-bottom:20px;white-space:pre-wrap}
+        .type-badge{display:inline-block;background:#e0e7ff;color:#3730a3;padding:4px 14px;border-radius:14px;font-size:13px;font-weight:600}
+        .btn-back{display:block;text-align:center;background:#1b2a7a;color:#fff;text-decoration:none;padding:12px;border-radius:6px;font-weight:600}
+        .btn-back:hover{background:#f15a24}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <c:choose>
+            <c:when test="${not empty note}">
+                <h2>📄 <c:out value="${note.title}" /></h2>
+                <div class="meta">
+                    <strong>ID:</strong> ${note.id} &nbsp;|&nbsp;
+                    <span class="type-badge"><c:out value="${note.type}" /></span>
+                </div>
+                <div class="content"><c:out value="${note.content}" /></div>
+            </c:when>
+            <c:otherwise>
+                <h2>❌ Không tìm thấy ghi chú</h2>
+            </c:otherwise>
+        </c:choose>
+        <a href="notes" class="btn-back">← Quay lại danh sách</a>
+    </div>
+</body>
+</html>
+📄 FILE 14 → inotes/pom.xml
+text
+pom.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.codegym</groupId>
+    <artifactId>inotes</artifactId>
+    <packaging>war</packaging>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>6.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet.jsp</groupId>
+            <artifactId>jakarta.servlet.jsp-api</artifactId>
+            <version>3.1.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet.jsp.jstl</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.web</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.3.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>inotes</finalName>
+    </build>
+</project>
+🚀 CÁC BƯỚC CHẠY
+1. Chạy SQL
+Mở MySQL Workbench → chạy iNotes.sql.
+
+2. Sửa mật khẩu trong DBConnection.java
+java
+private static final String PASSWORD = "123456";   // ← đổi mật khẩu
+3. Build
+bash
+cd inotes
+mvn clean package
+4. Deploy Tomcat
+bash
+copy target\inotes.war C:\tomcat\webapps\
+C:\tomcat\bin\startup.bat
+5. Truy cập
+text
+http://localhost:8080/inotes/notes
+⭐ KIẾN THỨC CHÍNH — STRATEGY PATTERN
+1. Sơ đồ lớp
+text
+              ┌─────────────────┐
+              │   <<interface>> │
+              │       Note      │  ← Strategy
+              └────────┬────────┘
+                       │
+              ┌────────┴─────────┐
+              │                  │
+       ┌──────▼──────┐    ┌──────▼──────┐
+       │   NoteDB    │    │  NoteFile   │
+       │ (DB strategy)│    │(File strategy)│
+       └─────────────┘    └─────────────┘
+              ▲                  ▲
+              │                  │
+              └──────┬───────────┘
+                     │
+            ┌────────┴─────────┐
+            │  NoteManagement  │  ← Context
+            │  changeNoteStore │
+            └──────────────────┘
+2. Đặc điểm Strategy Pattern
+Thành phần	Vai trò	Trong bài
+Strategy	Interface chung	Note
+Concrete Strategies	Các cách triển khai	NoteDB, NoteFile
+Context	Dùng strategy	NoteManagement
+3. Ưu điểm
+✅ Dễ mở rộng: Thêm NoteXML, NoteJSON chỉ cần implements Note.
+
+✅ Tách biệt logic: NoteManagement không biết chi tiết lưu trữ.
+
+✅ Runtime switching: Đổi changeNoteStore("FILE") bất kỳ lúc nào.
+
+4. Định dạng file notes.txt
+text
+id|title|typeId|content
+1|Họp nhóm|1|Nội dung cuộc họp...
+2|Mua sữa|2|Mua 2 hộp sữa tươi
+Dùng dấu | làm separator (ít xuất hiện trong nội dung).
+
+Mỗi dòng 1 ghi chú.
+
+ID tự tăng = max(id) + 1.
+
+💡 TRẢ LỜI VẤN ĐÁP NHANH
+Câu hỏi	Trả lời
+Strategy Pattern là gì?	Cho phép chọn thuật toán/chiến lược tại runtime mà không sửa code client.
+Tại sao dùng Strategy cho iNotes?	Vì cần linh hoạt đổi giữa lưu DB và lưu File mà không viết lại logic nghiệp vụ.
+changeNoteStore để làm gì?	Đổi strategy hiện tại — chỉ cần đổi đối tượng note từ NoteDB sang NoteFile.
+Khác gì với if-else?	If-else hard-code, khó mở rộng. Strategy cho phép plug-in các chiến lược mới dễ dàng.
+Nếu muốn thêm lưu XML?	Tạo NoteXML implements Note rồi thêm case trong changeNoteStore.
+| trong file là gì?	Separator phân tách các trường: id, title, typeId, content.
+Làm sao tìm kiếm trong file?	Đọc toàn bộ file → filter bằng contains(keyword).
+Chúc bạn ăn trọn điểm! 🚀
+
